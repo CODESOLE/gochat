@@ -1,3 +1,10 @@
 package core
 
-type Payload []byte
+import "net"
+
+type Payload struct {
+  Msg []byte
+  Conn net.Conn
+  IpAddr string
+  SendTime string
+}
