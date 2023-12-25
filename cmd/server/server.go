@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/CODESOLE/gochat/internal/core"
@@ -14,18 +15,23 @@ import (
 type Clients []net.Conn
 
 var clients = make(Clients, 0, 100)
+var mu sync.Mutex
 
 func handle_client(conn net.Conn, msg_ch chan core.Payload) {
 	pl := core.Payload{}
 	pl.Msg = make([]byte, 255)
 	pl.IpAddr = conn.RemoteAddr().String()
 	pl.Conn = conn
-	pl.SendTime = time.Now().String()
 	for {
 		n, err := conn.Read(pl.Msg)
+		pl.SendTime = time.Now().String()
 		if err != nil {
 			log.Printf("Client(%s) disconnected!\n", conn.RemoteAddr().String())
-			clients = slices.DeleteFunc(clients, func(c net.Conn) bool { return c.RemoteAddr().String() == conn.RemoteAddr().Network() })
+			mu.Lock()
+			clients = slices.DeleteFunc(clients, func(c net.Conn) bool {
+				return c.RemoteAddr().String() == conn.RemoteAddr().Network()
+			})
+			mu.Unlock()
 			conn.Close()
 			return
 		}
