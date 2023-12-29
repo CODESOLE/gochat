@@ -13,6 +13,20 @@
           "1234"
         ]
       }
+    },
+    "Launch Client with args: localhost:1234": {
+      "adapter": "delve",
+      "configuration": {
+        "request": "launch",
+        "program": "${workspaceRoot}/cmd/client/client.go",
+        "cwd": "${workspaceRoot}",
+        "env": {
+          "BASEPATH": "${workspaceRoot}"
+        },
+        "args": [
+          "localhost:1234"
+        ]
+      }
     }
   }
 }
