@@ -1,0 +1,18 @@
+{
+  "configurations": {
+    "Launch Server with args: 1234": {
+      "adapter": "delve",
+      "configuration": {
+        "request": "launch",
+        "program": "${workspaceRoot}/cmd/server/server.go",
+        "cwd": "${workspaceRoot}",
+        "env": {
+          "BASEPATH": "${workspaceRoot}"
+        },
+        "args": [
+          "1234"
+        ]
+      }
+    }
+  }
+}
