@@ -1,62 +1,97 @@
 package main
 
 import (
-	"bufio"
-  "fmt"
+	"fmt"
 	"log"
 	"net"
 	"os"
+	"time"
+
+	"github.com/CODESOLE/gochat/cmd/client/tui"
+	ui "github.com/gizak/termui/v3"
 )
 
-func handle_incoming_msg(conn *net.TCPConn, inmsgch chan string) {
+func handle_incoming_msg(conn *net.TCPConn) {
 	reply := make([]byte, 0, 255)
 
 	for {
-		_, err := conn.Read(reply)
+		i, err := conn.Read(reply)
 		if err != nil {
 			fmt.Println("Read from server failed:", err.Error())
 			conn.Close()
 			os.Exit(1)
 		}
-		r := string(reply)
-		fmt.Println("reply from server=", r)
-		inmsgch <- r
+		fmt.Println("reply from server=", reply)
+		fmt.Println("size: ", i)
 	}
+}
+
+func is_alphanum(c byte) bool {
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')
 }
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatalln("Absent argument! You must specify IP:PORT in this format: 'xxxx.yyyy.zzzz.wwww:pppp'")
+		log.Fatalln("Missing argument! You must specify IP:PORT in this format: 'xxxx.yyyy.zzzz.wwww:pppp'")
 	}
 	servAddr := os.Args[1] // IP:PORT
 	tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
 	if err != nil {
-		fmt.Println("ResolveTCPAddr failed:", err.Error())
+		log.Fatalln("ResolveTCPAddr failed: ", err.Error())
 		os.Exit(1)
 	}
+
+	if err := ui.Init(); err != nil {
+		log.Fatalf("failed to initialize termui: %v", err)
+	}
+	defer ui.Close()
 
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
-		fmt.Println("Dial failed:", err.Error())
+		fmt.Println("Couldn' t connect to server':", err.Error())
 		os.Exit(1)
 	}
-	inmsgch := make(chan string)
-	go handle_incoming_msg(conn, inmsgch)
+	go handle_incoming_msg(conn)
 
+	buf := make([]byte, 255)
+	uiEvents := ui.PollEvents()
+	ticker := time.NewTicker(time.Millisecond * 100).C
+	var ui_width, ui_height int = ui.TerminalDimensions()
 	for {
-    reader := bufio.NewReader(os.Stdin)
-    b, err := reader.ReadBytes('\n')
-		if err != nil {
-			os.Exit(1)
+		select {
+		case e := <-uiEvents:
+			switch e.ID { // event string/identifier
+			case "q", "<C-c>": // press 'q' or 'C-c' to quit
+				return
+			case "<Resize>":
+				payload := e.Payload.(ui.Resize)
+				ui_width, ui_height = payload.Width, payload.Height
+			}
+			switch e.Type {
+			case ui.KeyboardEvent: // handle all key presses
+				eventID := e.ID // keypress string
+				if eventID == "<Tab>" {
+					for range [4]byte{} {
+						buf = append(buf, ' ')
+					}
+				} else if eventID == "<Space>" {
+					buf = append(buf, ' ')
+				}
+				if len(eventID) == 1 && is_alphanum(eventID[0]) {
+					buf = append(buf, eventID[0])
+				} else if eventID == "<Enter>" {
+					_, err = conn.Write(buf)
+					if err != nil {
+						conn.Close()
+						fmt.Println("Write to server failed: ", err.Error())
+						os.Exit(1)
+					}
+					buf = nil
+				}
+			}
+		// use Go's built-in tickers for updating and drawing data
+		case <-ticker:
+			tui.RenderPromptUI(ui_width, ui_height, buf)
 		}
-		_, err = conn.Write(b)
-		if err != nil {
-			conn.Close()
-			fmt.Println("Write to server failed:", err.Error())
-			os.Exit(1)
-		}
-
-		println("write to server = ", string(b))
 	}
-
 }
