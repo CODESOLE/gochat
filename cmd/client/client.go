@@ -8,21 +8,21 @@ import (
 	"time"
 
 	"github.com/CODESOLE/gochat/cmd/client/tui"
+	"github.com/CODESOLE/gochat/internal/core"
 	ui "github.com/gizak/termui/v3"
 )
 
 func handle_incoming_msg(conn *net.TCPConn) {
-	reply := make([]byte, 0, 255)
+	reply := make([]byte, 255)
 
 	for {
-		i, err := conn.Read(reply)
+		n, err := conn.Read(reply)
+    core.PushStack(reply[:n], conn.RemoteAddr().String(), time.Now().String())
 		if err != nil {
 			fmt.Println("Read from server failed:", err.Error())
 			conn.Close()
 			os.Exit(1)
 		}
-		fmt.Println("reply from server=", reply)
-		fmt.Println("size: ", i)
 	}
 }
 
@@ -76,6 +76,8 @@ func main() {
 					}
 				} else if eventID == "<Space>" {
 					buf = append(buf, ' ')
+				} else if eventID == "<Backspace>" || eventID == "<C-<Backspace>>" {
+          buf = buf[:len(buf) - 1]
 				}
 				if len(eventID) == 1 && is_alphanum(eventID[0]) {
 					buf = append(buf, eventID[0])
