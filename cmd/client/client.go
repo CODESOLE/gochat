@@ -5,16 +5,15 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-// var boxes []tview.Box
+var msgstack = make([]*tview.TextView, 0, 4)
+var stack_idx int = 0
 
-func handle_incoming_msg(conn *net.TCPConn, flex *tview.Flex, app *tview.Application) {
+func handle_incoming_msg(conn *net.TCPConn, grid *tview.Grid, app *tview.Application) {
 	reply := make([]byte, 255)
 
 	for {
@@ -24,11 +23,16 @@ func handle_incoming_msg(conn *net.TCPConn, flex *tview.Flex, app *tview.Applica
 			conn.Close()
 			os.Exit(1)
 		}
-		tv := tview.NewTextView().SetChangedFunc(func() { app.Draw() })
-    trimmed_str := strings.TrimSpace(string(reply[:n]))
-		fmt.Fprintf(tv, "%s", trimmed_str)
-		tv.SetBorder(true).SetTitle(time.Now().String())
-		flex.AddItem(tv, 0, 1, false)
+		tv := tview.NewTextView()
+		tv.SetText(string(reply[:n])).SetBorder(false)
+		tv.SetChangedFunc(func() { app.Draw() })
+		msgstack = append(msgstack, tv)
+		var rows = make([]int, len(msgstack))
+		for i := range msgstack {
+			rows[i] = msgstack[len(msgstack)-1-i].GetFieldHeight() + 1
+			grid.AddItem(msgstack[len(msgstack)-1-i], i, 0, 1, rows[i], 0, 0, false)
+		}
+		grid.SetRows(rows...)
 	}
 }
 
@@ -51,6 +55,31 @@ func main() {
 
 	app := tview.NewApplication()
 	inputField := tview.NewInputField()
+	grid := tview.NewGrid()
+	grid.SetColumns(0).SetGap(1, 1).SetBorders(true).SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+		switch ev.Key() {
+		case tcell.KeyUp:
+			if stack_idx == 0 {
+				return ev
+			}
+
+			stack_idx--
+
+		case tcell.KeyDown:
+			if stack_idx == len(msgstack)-1 {
+				return ev
+			}
+
+			stack_idx++
+
+		default:
+			return ev
+		}
+
+		grid.SetOffset(stack_idx-1, 0)
+
+		return nil
+	})
 	inputField.SetLabel("Enter Message: ").
 		SetPlaceholder("Your message").
 		SetFieldWidth(0).
@@ -62,12 +91,12 @@ func main() {
 				inputField.SetText("")
 			}
 		})
-	inputField.SetBorder(true)
 
 	flex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(inputField, 0, 1, true)
+		AddItem(inputField, 0, 3, true).
+		AddItem(grid, 0, 9, false)
 
-	go handle_incoming_msg(conn, flex, app)
+	go handle_incoming_msg(conn, grid, app)
 
 	if err := app.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
 		panic(err)
