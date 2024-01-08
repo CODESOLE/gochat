@@ -93,8 +93,8 @@ func main() {
 		})
 
 	flex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(inputField, 0, 3, true).
-		AddItem(grid, 0, 9, false)
+		AddItem(inputField, 1, 1, true).
+		AddItem(grid, 0, 1, false)
 
 	go handle_incoming_msg(conn, grid, app)
 
