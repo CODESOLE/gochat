@@ -4,6 +4,8 @@
 
 go experimenting.
 
+![](demo.gif)
+
 # LICENSE
 
 MIT
