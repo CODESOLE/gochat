@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -23,14 +24,15 @@ func handle_incoming_msg(conn *net.TCPConn, grid *tview.Grid, app *tview.Applica
 			conn.Close()
 			os.Exit(1)
 		}
-		tv := tview.NewTextView()
-		tv.SetText(string(reply[:n])).SetBorder(false)
+		tv := tview.NewTextView().SetDynamicColors(true)
+    txt := fmt.Sprintf("From [red]%s[white] on [red]%s [green]=> [yellow]%s", conn.RemoteAddr().String(), time.Now().Local().Format(time.ANSIC), string(reply[:n]))
+    tv.SetText(txt).SetBorder(false)
 		tv.SetChangedFunc(func() { app.Draw() })
 		msgstack = append(msgstack, tv)
 		var rows = make([]int, len(msgstack))
 		for i := range msgstack {
 			rows[i] = msgstack[len(msgstack)-1-i].GetFieldHeight() + 1
-			grid.AddItem(msgstack[len(msgstack)-1-i], i, 0, 1, rows[i], 0, 0, false)
+			grid.AddItem(msgstack[len(msgstack)-1-i], i, 0, rows[i], 1, 0, 0, false)
 		}
 		grid.SetRows(rows...)
 	}
@@ -56,7 +58,7 @@ func main() {
 	app := tview.NewApplication()
 	inputField := tview.NewInputField()
 	grid := tview.NewGrid()
-	grid.SetColumns(0).SetGap(1, 1).SetBorders(true).SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+	grid.SetColumns(0).SetGap(0, 0).SetBorders(true).SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		switch ev.Key() {
 		case tcell.KeyUp:
 			if stack_idx == 0 {
