@@ -89,7 +89,10 @@ func main() {
 			if key == tcell.KeyCtrlC {
 				app.Stop()
 			} else if key == tcell.KeyEnter {
-				conn.Write([]byte(inputField.GetText()))
+				_, err = conn.Write([]byte(inputField.GetText()))
+        if err != nil {
+          log.Fatal("Failed to write to server!\n")
+        }
 				inputField.SetText("")
 			}
 		})
