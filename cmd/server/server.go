@@ -51,6 +51,7 @@ func server(msg_ch chan core.Payload) {
 			}
 			log.Printf("Message sent from %v to %v", s.IpAddr, c.RemoteAddr().String())
 		}
+		clear(s.Msg)
 	}
 }
 

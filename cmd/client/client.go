@@ -25,8 +25,8 @@ func handle_incoming_msg(conn *net.TCPConn, grid *tview.Grid, app *tview.Applica
 			os.Exit(1)
 		}
 		tv := tview.NewTextView().SetDynamicColors(true)
-    txt := fmt.Sprintf("From [red]%s[white] on [red]%s [green]=> [yellow]%s", conn.RemoteAddr().String(), time.Now().Local().Format(time.ANSIC), string(reply[:n]))
-    tv.SetText(txt).SetBorder(false)
+		txt := fmt.Sprintf("From [red]%s[white] on [red]%s [green]=> [yellow]%s", conn.RemoteAddr().String(), time.Now().Local().Format(time.ANSIC), string(reply[:n]))
+		tv.SetText(txt).SetBorder(false)
 		tv.SetChangedFunc(func() { app.Draw() })
 		msgstack = append(msgstack, tv)
 		var rows = make([]int, len(msgstack))
@@ -35,6 +35,7 @@ func handle_incoming_msg(conn *net.TCPConn, grid *tview.Grid, app *tview.Applica
 			grid.AddItem(msgstack[len(msgstack)-1-i], i, 0, rows[i], 1, 0, 0, false)
 		}
 		grid.SetRows(rows...)
+		clear(reply)
 	}
 }
 
@@ -90,9 +91,9 @@ func main() {
 				app.Stop()
 			} else if key == tcell.KeyEnter {
 				_, err = conn.Write([]byte(inputField.GetText()))
-        if err != nil {
-          log.Fatal("Failed to write to server!\n")
-        }
+				if err != nil {
+					log.Fatal("Failed to write to server!\n")
+				}
 				inputField.SetText("")
 			}
 		})
