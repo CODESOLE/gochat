@@ -5,4 +5,8 @@ ifeq ($(OS),Windows_NT)
 endif
 
 all:
-	@$(GO_COMPILER) build cmd/server/server.go && $(GO_COMPILER) build cmd/client/client.go
+	$(GO_COMPILER) build cmd/server/server.go && $(GO_COMPILER) build cmd/client/client.go
+
+clean:
+	del server.exe
+	del client.exe
